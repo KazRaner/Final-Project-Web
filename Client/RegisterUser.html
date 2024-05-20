@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Register User</title>
+		<link
+			rel="stylesheet"
+			type="text/css"
+			href="style.css" />
+	</head>
+	<body>
+		<h1>Register User</h1>
+		<form
+			action="/register"
+			method="POST">
+			<input
+				type="email"
+				name="email"
+				placeholder="Email"
+				required />
+			<input
+				type="password"
+				name="password"
+				placeholder="Password"
+				required />
+			<input
+				type="password"
+				name="repeatPassword"
+				placeholder="Repeat Password"
+				required />
+			<input
+				type="text"
+				name="userName"
+				placeholder="User Name"
+				required />
+			<button type="submit">Register</button>
+		</form>
+	</body>
+</html>
