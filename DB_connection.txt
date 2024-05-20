@@ -1,0 +1,7 @@
+MongoDB
+
+Change this in server.js if needed. 
+const url = "mongodb://127.0.0.1:27017";
+
+Local host connection:
+http://localhost:3000/
