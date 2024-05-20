@@ -77,17 +77,17 @@ app.post("/register", async (req, res) => {
 
 	// Perform validations
 	if (!email || !password || !repeatPassword || !userName) {
-		return res.status(400).send("All fields are required");
+		return res.json({ error: "All fields are required" });
 	}
 
 	if (password !== repeatPassword) {
-		return res.status(400).send("Passwords do not match");
+		return res.json({ error: "Passwords do not match" });
 	}
 
 	if (password.length < 8) {
-		return res
-			.status(400)
-			.send("Password must be at least 8 characters long");
+		return res.json({
+			error: "Password must be at least 8 characters long",
+		});
 	}
 
 	try {
@@ -98,9 +98,9 @@ app.post("/register", async (req, res) => {
 		// Check if user with the same email already exists
 		const existingUser = await usersCollection.findOne({ email });
 		if (existingUser) {
-			return res
-				.status(400)
-				.send("User with the same email already exists");
+			return res.json({
+				error: "User with the same email already exists",
+			});
 		}
 
 		// Create new user
@@ -113,10 +113,10 @@ app.post("/register", async (req, res) => {
 		// Save user to database
 		await usersCollection.insertOne(newUser);
 
-		res.redirect("/login");
+		res.json({ success: true });
 	} catch (error) {
 		console.error("Error registering user:", error);
-		res.status(500).send("Internal Server Error");
+		res.json({ error: "Internal Server Error" });
 	} finally {
 		await client.close();
 	}
@@ -210,25 +210,29 @@ app.post("/api/todos", isAuthenticated, async (req, res) => {
 	}
 });
 
-// Update todo completion route
-app.put("/api/todos/:id", isAuthenticated, async (req, res) => {
-	const todoId = req.params.id;
-	const { completed } = req.body;
+// Update user todos route
+app.put("/api/todos", isAuthenticated, async (req, res) => {
+	const user = req.session.user;
+	const { todos } = req.body;
 
 	try {
 		await client.connect();
 		const db = client.db(dbName);
 		const todosCollection = db.collection("todos");
 
-		const { ObjectId } = require("mongodb");
-		await todosCollection.updateOne(
-			{ _id: new ObjectId(todoId) },
-			{ $set: { completed } }
-		);
+		await todosCollection.deleteMany({ userEmail: user.email });
+
+		if (todos.length > 0) {
+			const newTodos = todos.map((todo) => ({
+				...todo,
+				userEmail: user.email,
+			}));
+			await todosCollection.insertMany(newTodos);
+		}
 
 		res.sendStatus(200);
 	} catch (error) {
-		console.error("Error updating user todo completion:", error);
+		console.error("Error updating user todos:", error);
 		res.status(500).send("Internal Server Error");
 	} finally {
 		await client.close();
