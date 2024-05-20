@@ -16,13 +16,8 @@ app.use(
 	})
 );
 
-// MongoDB connection URL
 const url = "mongodb://127.0.0.1:27017";
-
-// Database name
 const dbName = "todo-app";
-
-// Create a new MongoClient
 const client = new MongoClient(url);
 
 // Middleware to check if user is authenticated
@@ -34,17 +29,48 @@ function isAuthenticated(req, res, next) {
 	}
 }
 
-// Home route
 app.get("/", (req, res) => {
 	res.sendFile(__dirname + "/client/home.html");
-});
-app.get("/register", (req, res) => {
-	res.sendFile(__dirname + "/client/RegisterUser.html");
 });
 
 app.get("/login", (req, res) => {
 	res.sendFile(__dirname + "/client/LoginUser.html");
 });
+
+app.get("/register", (req, res) => {
+	res.sendFile(__dirname + "/client/RegisterUser.html");
+});
+
+app.get("/logout", (req, res) => {
+	req.session.destroy();
+	res.redirect("/login");
+});
+
+app.get("/todos", isAuthenticated, (req, res) => {
+	res.sendFile(__dirname + "/client/todosUser.html");
+});
+
+// Get user todos route
+app.get("/api/todos", isAuthenticated, async (req, res) => {
+	const user = req.session.user;
+
+	try {
+		await client.connect();
+		const db = client.db(dbName);
+		const todosCollection = db.collection("todos");
+
+		const userTodos = await todosCollection
+			.find({ userEmail: user.email })
+			.toArray();
+		res.json(userTodos);
+	} catch (error) {
+		console.error("Error getting user todos:", error);
+		res.status(500).send("Internal Server Error");
+	} finally {
+		await client.close();
+	}
+});
+
 // Register user route
 app.post("/register", async (req, res) => {
 	const { email, password, repeatPassword, userName } = req.body;
@@ -127,16 +153,6 @@ app.post("/login", async (req, res) => {
 	}
 });
 
-// Logout user route
-app.get("/logout", (req, res) => {
-	req.session.destroy();
-	res.redirect("/login");
-});
-
-app.get("/todos", isAuthenticated, (req, res) => {
-	res.sendFile(__dirname + "/client/todosUser.html");
-});
-
 // Save user todos route
 app.post("/todos", isAuthenticated, async (req, res) => {
 	const user = req.session.user;
@@ -166,6 +182,35 @@ app.post("/todos", isAuthenticated, async (req, res) => {
 	}
 });
 
+// Add user todo route
+app.post("/api/todos", isAuthenticated, async (req, res) => {
+	const user = req.session.user;
+	const { todo } = req.body;
+
+	try {
+		await client.connect();
+		const db = client.db(dbName);
+		const todosCollection = db.collection("todos");
+
+		const newTodo = {
+			...todo,
+			userEmail: user.email,
+			completed: false,
+		};
+
+		const result = await todosCollection.insertOne(newTodo);
+		newTodo._id = result.insertedId;
+
+		res.json(newTodo);
+	} catch (error) {
+		console.error("Error adding user todo:", error);
+		res.status(500).send("Internal Server Error");
+	} finally {
+		await client.close();
+	}
+});
+
+// Update todo completion route
 app.put("/api/todos/:id", isAuthenticated, async (req, res) => {
 	const todoId = req.params.id;
 	const { completed } = req.body;
@@ -189,54 +234,8 @@ app.put("/api/todos/:id", isAuthenticated, async (req, res) => {
 		await client.close();
 	}
 });
-// Get user todos route
-app.get("/api/todos", isAuthenticated, async (req, res) => {
-	const user = req.session.user;
 
-	try {
-		await client.connect();
-		const db = client.db(dbName);
-		const todosCollection = db.collection("todos");
-
-		const userTodos = await todosCollection
-			.find({ userEmail: user.email })
-			.toArray();
-		res.json(userTodos);
-	} catch (error) {
-		console.error("Error getting user todos:", error);
-		res.status(500).send("Internal Server Error");
-	} finally {
-		await client.close();
-	}
-});
-
-// Add user todo route
-app.post("/api/todos", isAuthenticated, async (req, res) => {
-	const user = req.session.user;
-	const { todo } = req.body;
-
-	try {
-		await client.connect();
-		const db = client.db(dbName);
-		const todosCollection = db.collection("todos");
-
-		const newTodo = {
-			...todo,
-			userEmail: user.email,
-			completed: false, // Add a completed field with default value of false
-		};
-
-		const result = await todosCollection.insertOne(newTodo);
-		newTodo._id = result.insertedId;
-
-		res.json(newTodo);
-	} catch (error) {
-		console.error("Error adding user todo:", error);
-		res.status(500).send("Internal Server Error");
-	} finally {
-		await client.close();
-	}
-});
+// Delete user todo route
 app.delete("/api/todos/:id", isAuthenticated, async (req, res) => {
 	const todoId = req.params.id;
 

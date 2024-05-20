@@ -1,3 +1,4 @@
+// login.js
 const loginForm = document.getElementById("loginForm");
 
 loginForm.addEventListener("submit", (event) => {
@@ -21,6 +22,7 @@ loginForm.addEventListener("submit", (event) => {
 			}
 		})
 		.then((user) => {
+			// Store user data in session storage
 			sessionStorage.setItem("user", JSON.stringify(user));
 			window.location.href = "/todos";
 		})

@@ -1,4 +1,5 @@
-// Get user info
+// todos.js
+// Get user info from session storage
 const userInfo = document.getElementById("userInfo");
 const user = JSON.parse(sessionStorage.getItem("user"));
 userInfo.innerHTML = `
@@ -6,12 +7,12 @@ userInfo.innerHTML = `
   <p>Email: ${user.email}</p>
 `;
 
-// Get user todos
 const todoList = document.getElementById("todoList");
 const todoForm = document.getElementById("todoForm");
 const saveBtn = document.getElementById("saveBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 
+// Function to render todos
 function renderTodos() {
 	todoList.innerHTML = "";
 	todos.forEach((todo) => {
@@ -30,6 +31,7 @@ function renderTodos() {
 	});
 }
 
+// Fetch user todos from server
 fetch("/api/todos")
 	.then((response) => response.json())
 	.then((fetchedTodos) => {
